@@ -23,10 +23,10 @@ namespace Ivelum.Controllers
             string uri = ConvertUrls(baseUrl.AbsoluteUri, HostInner, HostOuter);
             var request = WebRequest.Create(uri);
             var result = request.GetResponse();
-          
+
             var stream = result.GetResponseStream();
             StreamReader sr = new StreamReader(stream);
-   
+
             string reqResp = sr.ReadToEnd().Trim();
 
             reqResp = ConvertUrls(reqResp, HostOuter, HostInner);
@@ -39,6 +39,17 @@ namespace Ivelum.Controllers
         {
             HtmlAgilityPack.HtmlDocument htmlDoc = new HtmlAgilityPack.HtmlDocument();
             htmlDoc.Load(new StringReader(inputReq));
+            try
+            {
+                foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//h1[contains(@class,' post__title')]"))
+                {
+                    if (string.IsNullOrWhiteSpace(node.InnerText)) continue;
+                    node.InnerHtml = AddAdditionalEl(node, additionalEl);
+                }
+            }
+            catch (Exception e)
+            {
+            }
             try
             {
                 foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//a[contains(@class,'post__title_link') or contains(@class,'hubs')]"))
@@ -117,7 +128,7 @@ namespace Ivelum.Controllers
         private string ConvertUrls(string input, string from, string to)
         {
             Regex r = new Regex(from, RegexOptions.IgnoreCase);
-            
+
             return r.Replace(input, to);
         }
 
