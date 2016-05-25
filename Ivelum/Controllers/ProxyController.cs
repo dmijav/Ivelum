@@ -39,24 +39,62 @@ namespace Ivelum.Controllers
         {
             HtmlAgilityPack.HtmlDocument htmlDoc = new HtmlAgilityPack.HtmlDocument();
             htmlDoc.Load(new StringReader(inputReq));
-
-            foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//div[contains(@class,'content html_format')]"))
+            try
             {
-                if (string.IsNullOrWhiteSpace(node.InnerText)) continue;
-                node.ParentNode.ReplaceChild(HtmlTextNode.CreateNode(AddAdditionalEl(node.InnerText, additionalEl)), node);
+                foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//a[contains(@class,'post__title_link') or contains(@class,'hubs')]"))
+                {
+                    if (string.IsNullOrWhiteSpace(node.InnerText)) continue;
+                    node.InnerHtml = AddAdditionalEl(node, additionalEl);
+                }
             }
-
+            catch (Exception e)
+            {
+            }
+            try
+            {
+                foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//h2[contains(@class,'post__title')]"))
+                {
+                    if (string.IsNullOrWhiteSpace(node.InnerText)) continue;
+                    node.InnerHtml = AddAdditionalEl(node, additionalEl);
+                }
+            }
+            catch (Exception e)
+            {
+            }
+            try
+            {
+                foreach (HtmlNode node in htmlDoc.DocumentNode.SelectNodes("//div[contains(@class,'content html_format') or contains(@class,'author-info__username')]"))
+                {
+                    if (string.IsNullOrWhiteSpace(node.InnerText)) continue;
+                    node.InnerHtml = AddAdditionalEl(node, additionalEl);
+                }
+            }
+            catch (Exception e)
+            {
+            }
             return htmlDoc.DocumentNode.OuterHtml;
         }
 
-        private string AddAdditionalEl(string innerText, string additionalEl)
+        private string AddAdditionalEl(HtmlNode node, string additionalEl)
+        {
+            var innerHtml = node.InnerHtml;
+            HtmlAgilityPack.HtmlDocument htmlDoc = new HtmlAgilityPack.HtmlDocument();
+            htmlDoc.Load(new StringReader(innerHtml));
+            foreach (HtmlTextNode innerNode in htmlDoc.DocumentNode.SelectNodes("//text()"))
+            {
+                innerNode.Text = AddAdditionalSimbol(innerNode.Text, additionalEl);
+            }
+            return htmlDoc.DocumentNode.OuterHtml;
+        }
+
+        private string AddAdditionalSimbol(string innerHtml, string additionalEl)
         {
             StringBuilder result = new StringBuilder();
             int count = 0;
             int maxCount = 6;
-            foreach (char ch in innerText.ToCharArray())
+            foreach (char ch in innerHtml.ToCharArray())
             {
-                if (Char.IsWhiteSpace(ch) && count == maxCount)
+                if ((Char.IsWhiteSpace(ch) || ch == ',' || ch == '.' || ch == ':' || ch == ';' || ch == '!' || ch == '?') && count == maxCount)
                 {
                     result.Append(additionalEl);
                     count = 0;
@@ -69,8 +107,10 @@ namespace Ivelum.Controllers
                 {
                     count = 0;
                 }
+                if (ch == '\n') result.Append(Environment.NewLine);
                 result.Append(ch);
             }
+            if (count == maxCount) result.Append(additionalEl);
             return result.ToString();
         }
 
